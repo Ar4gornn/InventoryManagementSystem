@@ -7,7 +7,7 @@ import { chromium } from "playwright";
 //   node scripts/demo-check.mjs
 //
 // Point it elsewhere with DEMO_URL, for instance at the deployed page.
-const URL = process.env.DEMO_URL ?? "http://localhost:4180/InventoryManagementSystem/";
+const PAGE_URL = process.env.DEMO_URL ?? "http://localhost:4180/InventoryManagementSystem/";
 const OUT = process.env.SHOT_DIR ?? ".";
 
 const b = await chromium.launch();
@@ -18,8 +18,11 @@ const offPage = [];
 p.on("console", (m) => m.type() === "error" && errs.push(m.text()));
 // The whole claim of the demo is that nothing leaves the page. Record anything
 // requested from an origin other than the one serving it.
+const ORIGIN = new URL(PAGE_URL).origin;
 p.on("request", (r) => {
-  if (!r.url().startsWith("http://localhost:4180/")) offPage.push(`${r.method()} ${r.url()}`);
+  // Its own origin serves the page and its assets. Anything else would mean the
+  // demo is talking to a server, which is the one thing it must not do.
+  if (!r.url().startsWith(ORIGIN)) offPage.push(`${r.method()} ${r.url()}`);
 });
 
 const step = (n, m) => console.log(`\n[${n}] ${m}`);
@@ -33,7 +36,7 @@ const catRow = (n) => catPanel.getByRole("row").filter({ hasText: n });
 const prodRow = (s) => prodPanel.getByRole("row").filter({ hasText: s });
 const formPanel = () => p.locator("section.panel").filter({ hasText: "New product" });
 
-await p.goto(URL, { waitUntil: "networkidle" });
+await p.goto(PAGE_URL, { waitUntil: "networkidle" });
 await p.waitForTimeout(600);
 
 step(1, "the page loads at the project-page base path and says what it is");

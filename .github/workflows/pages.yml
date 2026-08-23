@@ -1,0 +1,86 @@
+name: demo
+
+# Publishes the web UI to GitHub Pages as a playable demo.
+#
+# There is no API behind it: Pages serves static files only, and this project's
+# API is not hosted anywhere. VITE_DEMO=1 swaps the client for the in-browser
+# stand-in in src/demo/, so the rules can be demonstrated without a server. The
+# page says so in a banner rather than passing itself off as the live API.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Read the repository, mint the Pages token. Nothing else.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; queued rather than cancelled so a push does not
+# abandon a half-finished publish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - run: npm ci
+
+      - name: Build the demo
+        env:
+          # A project page is served from /<repo>/, so every asset URL needs the
+          # prefix. The trailing slash matters.
+          VITE_BASE: /InventoryManagementSystem/
+          VITE_DEMO: '1'
+        run: npm run build
+
+      - name: Fail if the real client was bundled
+        # Vite replaces VITE_DEMO at build time, so the untaken branch should be
+        # dropped. Assert that rather than trusting it.
+        #
+        # Matched on the fetch client's own error text and its endpoint paths, not
+        # on the base URL: the default URL survives as a dangling
+        # `"http://localhost:5180".replace(...)` expression, because a bundler
+        # cannot prove String.replace is side-effect free. That literal is inert -
+        # the code that would have used it is gone.
+        run: |
+          if grep -rq "Cannot reach the API at" dist/assets || grep -rq '"/api/products' dist/assets; then
+            echo "The real API client is present in the demo bundle."
+            exit 1
+          fi
+          echo "Clean: the fetch client was tree-shaken out."
+
+      - name: Single-page fallback
+        # Pages serves 404.html for an unknown path. The app is one page, so this
+        # only matters for a stray deep link, but it costs one copy.
+        run: cp dist/index.html dist/404.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

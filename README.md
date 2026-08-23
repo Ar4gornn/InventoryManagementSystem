@@ -50,6 +50,30 @@ Run the tests:
 dotnet test
 ```
 
+## Try it without installing anything
+
+**<https://ar4gornn.github.io/InventoryManagementSystem/>**
+
+That is the real UI with a stand-in for the API. GitHub Pages serves static files and this
+project's API is not hosted anywhere, so rather than publish a page whose every request fails, the
+client is swapped at build time for an in-browser copy of the API's rules — see
+[`web/src/demo/`](web/src/demo/). Same shapes, same status codes, same refusals. The page says so
+in a banner; it does not pretend to be the live API.
+
+Worth doing there, because it is the design rather than the CRUD:
+
+- Select the drill. It reads **21**, and underneath, *"summed from 2 movements"* — a `+25` opening
+  and a `-4` sale. There is no quantity column to read it from.
+- Record an `Out` of 9999. It is refused with `Stock cannot go negative. Product 1 has 21 on hand
+  and this movement would leave -9978.`, and the stock does not budge.
+- Try to delete a product that has movements, or a category that still has products. Both refused,
+  and the category's refusal counts what is in the way.
+- Clear the API key at the top right, then try to write. That is the 401 the real middleware gives.
+
+Changes live in that tab only and reset on reload. The stand-in is a demonstration aid — the rules
+that count are the C# services, covered by the 86 tests below. `web/scripts/demo-check.mjs` drives
+the deployed page and asserts every refusal above still happens.
+
 ## The web UI
 
 There is a React front end in [`web/`](web/) that drives the whole API: a paged, searchable,

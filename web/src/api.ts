@@ -4,79 +4,29 @@
  * Reads are open; writes need the key, which the user supplies in the UI and
  * which is kept in memory and localStorage on their machine only. It is never
  * sent anywhere except this API, and there is no telemetry in this app.
+ *
+ * The published demo has no server to talk to, so when VITE_DEMO is set the whole
+ * client is swapped for an in-browser stand-in. Vite replaces the flag at build
+ * time, so the branch not taken is dropped from the bundle rather than shipped
+ * alongside the one that is.
  */
 
+import {
+  ApiError,
+  type Category,
+  type ImportResult,
+  type InventoryApi,
+  type Movement,
+  type MovementType,
+  type Paged,
+  type Product,
+  type StockLevel,
+} from "./apiTypes";
+import { demoApi } from "./demo/demoApi";
+
+export * from "./apiTypes";
+
 const BASE = (import.meta.env.VITE_API_URL ?? "http://localhost:5180").replace(/\/$/, "");
-
-export interface Paged<T> {
-  items: T[];
-  page: number;
-  pageSize: number;
-  totalCount: number;
-  totalPages: number;
-  hasNextPage: boolean;
-}
-
-export interface Product {
-  id: number;
-  sku: string;
-  name: string;
-  description: string | null;
-  categoryId: number;
-  categoryName: string;
-  quantityOnHand: number;
-  createdAt: string;
-}
-
-export interface Category {
-  id: number;
-  name: string;
-  description: string | null;
-  productCount: number;
-}
-
-export type MovementType = "In" | "Out" | "Adjustment";
-
-export interface Movement {
-  id: number;
-  productId: number;
-  type: MovementType;
-  quantityDelta: number;
-  reason: string | null;
-  occurredAt: string;
-}
-
-export interface StockLevel {
-  productId: number;
-  sku: string;
-  quantityOnHand: number;
-}
-
-export interface ImportRow {
-  line: number;
-  sku: string;
-  imported: boolean;
-  error: string | null;
-}
-
-export interface ImportResult {
-  totalRows: number;
-  importedCount: number;
-  failedCount: number;
-  rows: ImportRow[];
-}
-
-/** An error carrying the status and the API's own message, so the UI can show it. */
-export class ApiError extends Error {
-  // Declared rather than a constructor parameter property: the project builds
-  // with erasableSyntaxOnly, which forbids syntax that emits runtime code.
-  readonly status: number;
-
-  constructor(message: string, status: number) {
-    super(message);
-    this.status = status;
-  }
-}
 
 async function request<T>(path: string, init: RequestInit = {}, apiKey?: string): Promise<T> {
   const headers = new Headers(init.headers);
@@ -120,8 +70,9 @@ const json = (method: string, body: unknown): RequestInit => ({
   body: JSON.stringify(body),
 });
 
-export const api = {
+const realApi: InventoryApi = {
   baseUrl: BASE,
+  demo: false,
 
   products(query: { page?: number; pageSize?: number; search?: string; categoryId?: number }) {
     const params = new URLSearchParams();
@@ -193,3 +144,7 @@ export const api = {
     return request<ImportResult>("/api/products/import", { method: "POST", body: form }, apiKey);
   },
 };
+
+/** Swapped at build time, not at runtime: `import.meta.env.VITE_DEMO` is a literal
+ *  by the time the bundler sees this, so only one of the two is shipped. */
+export const api: InventoryApi = import.meta.env.VITE_DEMO === "1" ? demoApi : realApi;

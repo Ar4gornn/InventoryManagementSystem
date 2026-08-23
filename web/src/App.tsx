@@ -11,7 +11,12 @@ import { ProductTable } from "./components/ProductTable";
 const PAGE_SIZE = 10;
 
 export default function App() {
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem("inventory.apiKey") ?? "");
+  // In the demo the key is pre-filled, because asking a passing visitor to guess a
+  // credential is a worse introduction than letting them press buttons. Clearing it
+  // still demonstrates the 401, which is the point of having it at all.
+  const [apiKey, setApiKey] = useState(
+    () => localStorage.getItem("inventory.apiKey") ?? api.demoKey ?? "",
+  );
 
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -129,6 +134,16 @@ export default function App() {
         </div>
         <ApiKeyBar apiKey={apiKey} onChange={onKeyChange} />
       </header>
+
+      {api.demo && (
+        <p className="notice" role="note">
+          <strong>Demo.</strong> There is no server behind this page — the API is stood in for by
+          an in-browser copy of its rules, so everything below is real behaviour with fake
+          plumbing. Changes live in this tab only and reset on reload. The rules being enforced
+          are implemented in C# and covered by 86 tests in{" "}
+          <a href="https://github.com/Ar4gornn/InventoryManagementSystem">the repository</a>.
+        </p>
+      )}
 
       {error && <p className="error">{error}</p>}
       {actionError && <p className="error">{actionError}</p>}

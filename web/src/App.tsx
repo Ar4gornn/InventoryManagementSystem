@@ -2,8 +2,10 @@ import { useCallback, useEffect, useState } from "react";
 
 import { ApiError, api, type Category, type Product } from "./api";
 import { ApiKeyBar } from "./components/ApiKeyBar";
+import { CategoryPanel } from "./components/CategoryPanel";
 import { ImportPanel } from "./components/ImportPanel";
 import { MovementPanel } from "./components/MovementPanel";
+import { ProductForm, type FormMode } from "./components/ProductForm";
 import { ProductTable } from "./components/ProductTable";
 
 const PAGE_SIZE = 10;
@@ -22,6 +24,13 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Kept apart from `error`, which a successful reload clears. The outcome of a
+  // delete would otherwise be wiped by the reload the delete itself triggers.
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [actionNote, setActionNote] = useState<string | null>(null);
+
+  const [formMode, setFormMode] = useState<FormMode | null>(null);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -35,12 +44,23 @@ export default function App() {
       setSelected((current) =>
         current ? (result.items.find((p) => p.id === current.id) ?? current) : null,
       );
+      return result.items;
     } catch (e) {
       setError(e instanceof ApiError ? e.message : String(e));
+      return null;
     } finally {
       setLoading(false);
     }
   }, [page, search, categoryId]);
+
+  const loadCategories = useCallback(async () => {
+    try {
+      const result = await api.categories();
+      setCategories(result.items);
+    } catch {
+      /* the product load already surfaces an unreachable API */
+    }
+  }, []);
 
   useEffect(() => {
     // Debounced so typing in the search box does not fire a request per keystroke.
@@ -49,17 +69,52 @@ export default function App() {
   }, [load]);
 
   useEffect(() => {
-    api.categories().then(
-      (result) => setCategories(result.items),
-      () => {
-        /* the product load already surfaces an unreachable API */
-      },
-    );
-  }, []);
+    void loadCategories();
+  }, [loadCategories]);
 
   const onKeyChange = (key: string) => {
     setApiKey(key);
     localStorage.setItem("inventory.apiKey", key);
+  };
+
+  const onSaved = async (product: Product, note: string) => {
+    setFormMode(null);
+    setActionError(null);
+    setSelected(product);
+
+    // A product's category can change, and a new one shifts a category's count.
+    const [items] = await Promise.all([load(), loadCategories()]);
+
+    // Say so rather than leaving the user hunting for something they just created
+    // on a page or under a filter that does not show it.
+    const visible = items?.some((p) => p.id === product.id) ?? true;
+    setActionNote(
+      visible
+        ? note
+        : `${note} It is not on this page — clear the search or the category filter to find it.`,
+    );
+  };
+
+  const onDelete = async (product: Product) => {
+    setActionError(null);
+    setActionNote(null);
+
+    if (!apiKey) {
+      setActionError("Deleting a product needs the API key. Enter it at the top right.");
+      return;
+    }
+
+    try {
+      await api.deleteProduct(product.id, apiKey);
+      if (selected?.id === product.id) setSelected(null);
+      if (formMode?.kind === "edit" && formMode.product.id === product.id) setFormMode(null);
+      await Promise.all([load(), loadCategories()]);
+      setActionNote(`Deleted ${product.sku}.`);
+    } catch (e) {
+      // The 409 for a product that has movements lands here. Its wording explains
+      // that the history is why, which is better than anything invented here.
+      setActionError(e instanceof ApiError ? e.message : String(e));
+    }
   };
 
   return (
@@ -76,6 +131,8 @@ export default function App() {
       </header>
 
       {error && <p className="error">{error}</p>}
+      {actionError && <p className="error">{actionError}</p>}
+      {actionNote && <p className="ok">{actionNote}</p>}
 
       <div className="grid">
         <div>
@@ -83,6 +140,17 @@ export default function App() {
             <div className="panel-head">
               <h2>Products</h2>
               <div className="controls">
+                <button
+                  type="button"
+                  className="primary"
+                  onClick={() => {
+                    setFormMode({ kind: "create" });
+                    setActionNote(null);
+                    setActionError(null);
+                  }}
+                >
+                  New product
+                </button>
                 <input
                   type="text"
                   placeholder="Search SKU or name"
@@ -116,6 +184,12 @@ export default function App() {
                 loading={loading}
                 selectedId={selected?.id ?? null}
                 onSelect={setSelected}
+                onEdit={(product) => {
+                  setFormMode({ kind: "edit", product });
+                  setActionNote(null);
+                  setActionError(null);
+                }}
+                onDelete={(product) => void onDelete(product)}
               />
 
               <div className="pager">
@@ -142,7 +216,33 @@ export default function App() {
             </div>
           </section>
 
-          <ImportPanel apiKey={apiKey} onImported={() => void load()} />
+          {formMode && (
+            <ProductForm
+              key={formMode.kind === "edit" ? `edit-${formMode.product.id}` : "create"}
+              mode={formMode}
+              categories={categories}
+              apiKey={apiKey}
+              onSaved={(product, note) => void onSaved(product, note)}
+              onCancel={() => setFormMode(null)}
+            />
+          )}
+
+          <CategoryPanel
+            categories={categories}
+            apiKey={apiKey}
+            onChanged={() => {
+              void loadCategories();
+              void load();
+            }}
+          />
+
+          <ImportPanel
+            apiKey={apiKey}
+            onImported={() => {
+              void load();
+              void loadCategories();
+            }}
+          />
         </div>
 
         <MovementPanel product={selected} apiKey={apiKey} onRecorded={() => void load()} />

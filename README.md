@@ -53,8 +53,15 @@ dotnet test
 ## The web UI
 
 There is a React front end in [`web/`](web/) that drives the whole API: a paged, searchable,
-category-filtered product list; a stock panel showing the movement history and the derived total;
-a form to record movements; and CSV bulk import with per-row results.
+category-filtered product list; create, edit and delete for both products and categories; a stock
+panel showing the movement history and the derived total; a form to record movements; and CSV bulk
+import with per-row results.
+
+The refusals are part of the UI, not errors it hides. Deleting a product that has movements, or a
+category that still has products, is refused by the API and the UI shows that answer verbatim —
+including the count of what is in the way. A new product may be given an opening quantity, which is
+sent as an `In` movement after the product is created, because `POST /api/products` takes no
+quantity and stock is never written directly.
 
 ![The product list with a product selected, showing its movement history and the derived stock total](docs/ui-stock.png)
 

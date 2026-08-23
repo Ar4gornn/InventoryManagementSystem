@@ -340,3 +340,36 @@ td.num {
   margin-top: 0.6rem;
   font-size: 0.82rem;
 }
+
+/* ---------- row actions ---------- */
+
+td.actions {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+
+td.actions button {
+  padding: 0.2rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+/* Destructive confirmation. Coloured only once it is the actual Yes, so the
+   first click on Delete is not already shouting. */
+button.danger {
+  border-color: var(--out);
+  color: var(--out);
+}
+
+button.danger:hover:not(:disabled) {
+  background: var(--out-bg);
+  border-color: var(--out);
+  color: var(--out);
+}
+
+.hint {
+  font-size: 0.75rem;
+  color: var(--muted);
+}

@@ -114,8 +114,8 @@ async function request<T>(path: string, init: RequestInit = {}, apiKey?: string)
   return (await response.json()) as T;
 }
 
-const json = (body: unknown): RequestInit => ({
-  method: "POST",
+const json = (method: string, body: unknown): RequestInit => ({
+  method,
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify(body),
 });
@@ -149,7 +149,34 @@ export const api = {
     body: { sku: string; name: string; description?: string; categoryId: number },
     apiKey: string,
   ) {
-    return request<Product>("/api/products", json(body), apiKey);
+    return request<Product>("/api/products", json("POST", body), apiKey);
+  },
+
+  /** The SKU is immutable, so it is not in the body. Sending one would be ignored. */
+  updateProduct(
+    id: number,
+    body: { name: string; description?: string; categoryId: number },
+    apiKey: string,
+  ) {
+    return request<Product>(`/api/products/${id}`, json("PUT", body), apiKey);
+  },
+
+  /** 409 if the product has any movements — its history is not thrown away. */
+  deleteProduct(id: number, apiKey: string) {
+    return request<void>(`/api/products/${id}`, { method: "DELETE" }, apiKey);
+  },
+
+  createCategory(body: { name: string; description?: string }, apiKey: string) {
+    return request<Category>("/api/categories", json("POST", body), apiKey);
+  },
+
+  updateCategory(id: number, body: { name: string; description?: string }, apiKey: string) {
+    return request<Category>(`/api/categories/${id}`, json("PUT", body), apiKey);
+  },
+
+  /** 409 while any product still belongs to it, and the message says how many. */
+  deleteCategory(id: number, apiKey: string) {
+    return request<void>(`/api/categories/${id}`, { method: "DELETE" }, apiKey);
   },
 
   recordMovement(
@@ -157,7 +184,7 @@ export const api = {
     body: { type: MovementType; quantity: number; reason?: string },
     apiKey: string,
   ) {
-    return request<Movement>(`/api/products/${productId}/movements`, json(body), apiKey);
+    return request<Movement>(`/api/products/${productId}/movements`, json("POST", body), apiKey);
   },
 
   importCsv(file: File, apiKey: string) {

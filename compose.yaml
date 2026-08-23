@@ -8,9 +8,25 @@ services:
       # Set it in a .env file next to this one; see .env.example.
       Security__ApiKey: ${INVENTORY_API_KEY:?set INVENTORY_API_KEY in .env}
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      # The browser calls the API from the web container's origin, so that origin
+      # has to be on the allow-list. Named explicitly rather than a wildcard.
+      Cors__AllowedOrigins__0: http://localhost:8081
     volumes:
       # Keeps the SQLite database when the container is rebuilt or replaced.
       - inventory-data:/data
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./web
+      args:
+        # The browser resolves this, not the web container, so it is the address
+        # the API is published on from the host - not the compose service name.
+        VITE_API_URL: http://localhost:8080
+    ports:
+      - "8081:80"
+    depends_on:
+      - api
     restart: unless-stopped
 
 volumes:

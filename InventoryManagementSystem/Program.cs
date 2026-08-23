@@ -59,6 +59,22 @@ var connectionString = builder.Configuration.GetConnectionString("InventoryDb")
 
 builder.Services.AddDbContext<InventoryContext>(options => options.UseSqlite(connectionString));
 
+// The web UI is served from a different origin (port 5173 in development, 8081
+// under compose), so the browser will preflight every write. Origins come from
+// configuration rather than a wildcard: AllowAnyOrigin cannot be combined with
+// credentials and, more to the point, an API that accepts writes should say who
+// is allowed to make them.
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+                     ?? ["http://localhost:5173", "http://localhost:5174", "http://localhost:8081"];
+
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy => policy
+        .WithOrigins(allowedOrigins)
+        .AllowAnyHeader()
+        .AllowAnyMethod());
+});
+
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IStockMovementService, StockMovementService>();
@@ -97,6 +113,11 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Before the API key check: a rejected preflight never carries the header, so
+// putting CORS after it would turn every cross-origin write into an opaque
+// failure in the browser rather than a clean 401.
+app.UseCors();
 
 // Before the endpoints, after Swagger: the docs are readable without a key, the
 // writes are not.

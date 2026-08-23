@@ -15,7 +15,8 @@ drift apart. A mistake is corrected by recording a compensating movement, not by
 | Runtime | .NET 8 (`net8.0`) |
 | Web | ASP.NET Core, attribute-routed controllers, Swagger |
 | Data | EF Core 8.0.30 + SQLite, migrations applied on startup |
-| Tests | xUnit — 63 tests, most against real SQLite |
+| UI | React 19 + TypeScript + Vite, in [`web/`](web/) |
+| Tests | xUnit — 86 tests: service rules, real SQLite, and the HTTP layer |
 
 ## Quickstart
 
@@ -49,6 +50,36 @@ Run the tests:
 dotnet test
 ```
 
+## The web UI
+
+There is a React front end in [`web/`](web/) that drives the whole API: a paged, searchable,
+category-filtered product list; a stock panel showing the movement history and the derived total;
+a form to record movements; and CSV bulk import with per-row results.
+
+<!-- SCREENSHOT: product list with the stock panel open, save as docs/ui.png -->
+
+Two things it deliberately makes visible rather than hiding:
+
+- **Reads work with no key.** The header shows *Read-only* until you paste one, and write controls
+  explain what they need instead of failing quietly.
+- **The non-negative invariant is shown, not smoothed over.** Withdrawing more than exists surfaces
+  the API's own message — *"Stock cannot go negative. Product 1 has 16 on hand and this movement
+  would leave -9983."* — and the stock level does not move.
+
+Run it against a local API:
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+It serves on <http://localhost:5174> and expects the API on <http://localhost:5180>. Point it
+somewhere else with `VITE_API_URL`. The API's CORS allow-list names the permitted origins
+explicitly — it is not a wildcard — so a new origin must be added to `Cors:AllowedOrigins`.
+
+The API key you paste is kept in `localStorage` on your own machine and sent only to this API.
+
 ### With Docker instead
 
 ```bash
@@ -56,8 +87,15 @@ cp .env.example .env      # then set INVENTORY_API_KEY in it
 docker compose up --build
 ```
 
-The API is on <http://localhost:8080>. A named volume keeps the SQLite file when the container is
-replaced.
+This brings up both services: the API on <http://localhost:8080> and the UI on
+<http://localhost:8081>.
+
+A named volume keeps the SQLite file when the container is replaced.
+
+`VITE_API_URL` is baked into the UI at **build** time, because Vite inlines environment variables
+into the bundle — a static build has no runtime configuration. The compose file passes it as a
+build argument, and it is the address the API is published on **from the host**, not the compose
+service name, because the browser is what resolves it.
 
 ## API
 
@@ -146,6 +184,13 @@ not relational: it evaluates LINQ in process, so it cannot catch a query that fa
 SQL, and it ignores check constraints and unique indexes. A real bug got through it during
 development — a list endpoint that ordered by a projected DTO passed every InMemory test and
 returned a 500 against SQLite.
+
+The middleware is tested over real HTTP through `WebApplicationFactory`, against a throwaway SQLite
+database, because the API key check and the exception-to-status mapping only run on a real request
+and are unreachable from a service-level test. Those tests immediately earned their keep: they
+caught a 404 returned from a controller carrying `application/json` while a 404 raised through the
+middleware carried `application/problem+json` — one API answering the same class of error two
+different ways. Controllers now throw, so there is a single error path.
 
 `StockMovementConcurrencyTests` covers two simultaneous withdrawals. Read its remarks before
 changing it: it passes, but it **also passes with the transaction isolation weakened**, because

@@ -1,0 +1,10 @@
+# Normalise line endings in the repository. Without this, a Windows checkout
+# commits CRLF and every Linux contributor sees a whole-file diff.
+* text=auto eol=lf
+
+# Binary and generated files must not be touched.
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.pdf binary

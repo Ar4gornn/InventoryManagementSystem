@@ -1,15 +1,30 @@
+using InventoryManagementSystem.Persistence;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// SQLite by default so a clone runs with no infrastructure to set up. The path is
+// overridable through configuration for anyone who wants the file elsewhere.
+var connectionString = builder.Configuration.GetConnectionString("InventoryDb")
+                       ?? "Data Source=inventory.db";
+
+builder.Services.AddDbContext<InventoryContext>(options => options.UseSqlite(connectionString));
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Apply migrations on startup, then seed. Both are safe to run repeatedly: EF skips
+// migrations already applied, and the seeder is a no-op once any data exists.
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<InventoryContext>();
+    await context.Database.MigrateAsync();
+    await SeedData.EnsureSeededAsync(context);
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

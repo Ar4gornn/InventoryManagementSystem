@@ -19,6 +19,7 @@ builder.Services.AddDbContext<InventoryContext>(options => options.UseSqlite(con
 
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IStockMovementService, StockMovementService>();
 
 var app = builder.Build();
 

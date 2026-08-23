@@ -1,0 +1,42 @@
+# --- .NET build output ---
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.suo
+.vs/
+.idea/
+TestResults/
+
+# --- local data ---
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# --- secrets ---
+.env
+.env.*
+!.env.example
+appsettings.Development.json
+appsettings.Local.json
+appsettings.*.Local.json
+*.pem
+*.key
+secrets.json
+
+# --- agent memory & local notes (never push) ---
+CLAUDE.md
+CLAUDE.local.md
+LOG.md
+STATE.md
+.claude/
+*.local.*
+
+# --- BMAD working artifacts ---
+bmad/
+_bmad/
+.bmad*/
+bmad-output/

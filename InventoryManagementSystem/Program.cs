@@ -18,6 +18,7 @@ var connectionString = builder.Configuration.GetConnectionString("InventoryDb")
 builder.Services.AddDbContext<InventoryContext>(options => options.UseSqlite(connectionString));
 
 builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
 
 var app = builder.Build();
 

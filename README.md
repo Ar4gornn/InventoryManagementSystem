@@ -1,5 +1,7 @@
 # InventoryManagementSystem
 
+[![build](https://github.com/Ar4gornn/InventoryManagementSystem/actions/workflows/dotnet.yml/badge.svg)](https://github.com/Ar4gornn/InventoryManagementSystem/actions/workflows/dotnet.yml)
+
 A .NET 8 REST API for tracking stock. Products, categories, and an append-only movement log.
 
 The design decision everything else follows from: **there is no quantity column.** Stock on hand is

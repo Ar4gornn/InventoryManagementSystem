@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using InventoryManagementSystem.Application;
 using InventoryManagementSystem.Persistence;
 using InventoryManagementSystem.Services;
@@ -7,7 +8,14 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Accept and emit "Out" rather than 2. A numeric enum in JSON is unreadable in
+        // a log, unguessable from the docs, and silently accepts any int in range.
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
+
 builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddSwaggerGen(options =>

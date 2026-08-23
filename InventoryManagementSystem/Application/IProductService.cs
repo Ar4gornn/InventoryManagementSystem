@@ -4,7 +4,7 @@ namespace InventoryManagementSystem.Application;
 
 public interface IProductService
 {
-    Task<IReadOnlyList<ProductDto>> GetAllAsync(CancellationToken ct = default);
+    Task<PagedResult<ProductDto>> GetAsync(ProductQuery query, CancellationToken ct = default);
 
     Task<ProductDto?> GetByIdAsync(int id, CancellationToken ct = default);
 

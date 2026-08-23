@@ -268,8 +268,9 @@ public class ProductServiceTests
             });
         }
 
-        var all = await service.GetAllAsync();
+        var page = await service.GetAsync(new ProductQuery());
 
-        Assert.Equal(new[] { "AA-001", "MM-001", "ZZ-001" }, all.Select(p => p.Sku));
+        Assert.Equal(new[] { "AA-001", "MM-001", "ZZ-001" }, page.Items.Select(p => p.Sku));
+        Assert.Equal(3, page.TotalCount);
     }
 }

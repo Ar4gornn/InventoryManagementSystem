@@ -16,12 +16,17 @@ public class CategoriesController : ControllerBase
         _categories = categories;
     }
 
-    /// <summary>Lists every category with the number of products in it.</summary>
+    /// <summary>
+    /// Lists categories with the number of products in each. Supports paging and a
+    /// search across the name.
+    /// </summary>
     [HttpGet]
-    [ProducesResponseType(typeof(IReadOnlyList<CategoryDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyList<CategoryDto>>> GetAll(CancellationToken ct)
+    [ProducesResponseType(typeof(PagedResult<CategoryDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<CategoryDto>>> Get(
+        [FromQuery] CategoryQuery query,
+        CancellationToken ct)
     {
-        return Ok(await _categories.GetAllAsync(ct));
+        return Ok(await _categories.GetAsync(query, ct));
     }
 
     /// <summary>Gets one category by id.</summary>

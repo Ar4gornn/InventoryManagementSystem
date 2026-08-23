@@ -1,0 +1,17 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      # Required. The app refuses to start without it - there is no default key.
+      # Set it in a .env file next to this one; see .env.example.
+      Security__ApiKey: ${INVENTORY_API_KEY:?set INVENTORY_API_KEY in .env}
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+    volumes:
+      # Keeps the SQLite database when the container is rebuilt or replaced.
+      - inventory-data:/data
+    restart: unless-stopped
+
+volumes:
+  inventory-data:

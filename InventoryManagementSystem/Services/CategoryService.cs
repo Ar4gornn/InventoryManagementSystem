@@ -17,12 +17,27 @@ public class CategoryService : ICategoryService
         _logger = logger;
     }
 
-    public async Task<IReadOnlyList<CategoryDto>> GetAllAsync(CancellationToken ct = default)
+    public async Task<PagedResult<CategoryDto>> GetAsync(CategoryQuery query, CancellationToken ct = default)
     {
+        var categories = _context.Categories.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var pattern = $"%{query.Search.Trim()}%";
+            categories = categories.Where(c => EF.Functions.Like(c.Name, pattern));
+        }
+
+        var totalCount = await categories.CountAsync(ct);
+
         // Order before projecting: EF cannot translate an OrderBy over a projected
         // record that wraps a subquery.
-        return await Project(_context.Categories.AsNoTracking().OrderBy(c => c.Name))
+        var items = await Project(categories
+                .OrderBy(c => c.Name)
+                .Skip((query.Page - 1) * query.PageSize)
+                .Take(query.PageSize))
             .ToListAsync(ct);
+
+        return new PagedResult<CategoryDto>(items, query.Page, query.PageSize, totalCount);
     }
 
     public async Task<CategoryDto?> GetByIdAsync(int id, CancellationToken ct = default)

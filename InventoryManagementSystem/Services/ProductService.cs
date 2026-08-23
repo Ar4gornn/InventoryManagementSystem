@@ -17,13 +17,38 @@ public class ProductService : IProductService
         _logger = logger;
     }
 
-    public async Task<IReadOnlyList<ProductDto>> GetAllAsync(CancellationToken ct = default)
+    public async Task<PagedResult<ProductDto>> GetAsync(ProductQuery query, CancellationToken ct = default)
     {
+        var products = _context.Products.AsNoTracking();
+
+        if (query.CategoryId is { } categoryId)
+        {
+            products = products.Where(p => p.CategoryId == categoryId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            // EF.Functions.Like is case-insensitive for ASCII on SQLite and translates
+            // to SQL, unlike string.Contains(..., StringComparison), which does not.
+            var pattern = $"%{query.Search.Trim()}%";
+            products = products.Where(p =>
+                EF.Functions.Like(p.Sku, pattern) || EF.Functions.Like(p.Name, pattern));
+        }
+
+        // Count before paging, so the caller learns how many matched, not how many
+        // were returned.
+        var totalCount = await products.CountAsync(ct);
+
         // Order before projecting. Sorting the projected DTO makes EF try to translate
         // an ORDER BY over a constructed record wrapping the stock subquery, which it
         // cannot do - it throws at runtime rather than falling back to the client.
-        return await Project(_context.Products.AsNoTracking().OrderBy(p => p.Sku))
+        var items = await Project(products
+                .OrderBy(p => p.Sku)
+                .Skip((query.Page - 1) * query.PageSize)
+                .Take(query.PageSize))
             .ToListAsync(ct);
+
+        return new PagedResult<ProductDto>(items, query.Page, query.PageSize, totalCount);
     }
 
     public async Task<ProductDto?> GetByIdAsync(int id, CancellationToken ct = default)

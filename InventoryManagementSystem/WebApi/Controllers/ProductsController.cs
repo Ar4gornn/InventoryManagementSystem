@@ -10,18 +10,44 @@ namespace InventoryManagementSystem.WebApi.Controllers;
 public class ProductsController : ControllerBase
 {
     private readonly IProductService _products;
+    private readonly IProductImportService _import;
 
-    public ProductsController(IProductService products)
+    public ProductsController(IProductService products, IProductImportService import)
     {
         _products = products;
+        _import = import;
     }
 
-    /// <summary>Lists every product with its current stock on hand.</summary>
+    /// <summary>
+    /// Lists products with their current stock on hand. Supports paging, a search
+    /// across SKU and name, and filtering by category.
+    /// </summary>
     [HttpGet]
-    [ProducesResponseType(typeof(IReadOnlyList<ProductDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyList<ProductDto>>> GetAll(CancellationToken ct)
+    [ProducesResponseType(typeof(PagedResult<ProductDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<ProductDto>>> Get(
+        [FromQuery] ProductQuery query,
+        CancellationToken ct)
     {
-        return Ok(await _products.GetAllAsync(ct));
+        return Ok(await _products.GetAsync(query, ct));
+    }
+
+    /// <summary>
+    /// Imports products from a CSV file with the header
+    /// <c>sku,name,description,category,quantity</c>. Rows are independent: valid rows
+    /// are imported and the response lists which lines failed and why.
+    /// </summary>
+    [HttpPost("import")]
+    [ProducesResponseType(typeof(ImportResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<ImportResult>> Import(IFormFile file, CancellationToken ct)
+    {
+        if (file is null || file.Length == 0)
+        {
+            return Problem("Upload a CSV file in a form field named 'file'.", statusCode: 400);
+        }
+
+        await using var stream = file.OpenReadStream();
+        return Ok(await _import.ImportAsync(stream, ct));
     }
 
     /// <summary>Gets one product by id.</summary>

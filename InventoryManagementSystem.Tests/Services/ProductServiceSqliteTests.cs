@@ -84,7 +84,7 @@ public class ProductServiceSqliteTests : IDisposable
         await SeedAsync();
         using var context = NewContext();
 
-        var all = await NewService(context).GetAllAsync();
+        var all = (await NewService(context).GetAsync(new ProductQuery())).Items;
 
         Assert.Equal(new[] { "AA-SAW-001", "TL-DRL-001" }, all.Select(p => p.Sku));
         Assert.Equal(0, all.Single(p => p.Sku == "AA-SAW-001").QuantityOnHand);

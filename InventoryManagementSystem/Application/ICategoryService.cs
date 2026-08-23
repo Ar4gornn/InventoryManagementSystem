@@ -4,7 +4,7 @@ namespace InventoryManagementSystem.Application;
 
 public interface ICategoryService
 {
-    Task<IReadOnlyList<CategoryDto>> GetAllAsync(CancellationToken ct = default);
+    Task<PagedResult<CategoryDto>> GetAsync(CategoryQuery query, CancellationToken ct = default);
 
     Task<CategoryDto?> GetByIdAsync(int id, CancellationToken ct = default);
 

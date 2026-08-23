@@ -59,7 +59,7 @@ public class CategoryServiceSqliteTests : IDisposable
         }
 
         using var context = NewContext();
-        var all = await NewService(context).GetAllAsync();
+        var all = (await NewService(context).GetAsync(new CategoryQuery())).Items;
 
         Assert.Equal(new[] { "Safety", "Tools" }, all.Select(c => c.Name));
         Assert.Equal(0, all.Single(c => c.Name == "Safety").ProductCount);

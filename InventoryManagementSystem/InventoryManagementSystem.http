@@ -1,6 +1,95 @@
-@InventoryManagementSystem_HostAddress = http://localhost:5180
+@host = http://localhost:5180
+@apiKey = replace-me
 
-GET {{InventoryManagementSystem_HostAddress}}/weatherforecast/
+### List products - reads need no key
+GET {{host}}/api/products?page=1&pageSize=20
 Accept: application/json
 
-###
+### Search and filter
+GET {{host}}/api/products?search=drill&categoryId=1
+Accept: application/json
+
+### One product, with stock derived from its movement log
+GET {{host}}/api/products/1
+Accept: application/json
+
+### Create a product - writes need the key
+POST {{host}}/api/products
+Content-Type: application/json
+X-Api-Key: {{apiKey}}
+
+{
+  "sku": "TL-HAM-001",
+  "name": "Claw hammer",
+  "description": "16oz, fibreglass handle",
+  "categoryId": 1
+}
+
+### Same request without the key - expect 401
+POST {{host}}/api/products
+Content-Type: application/json
+
+{
+  "sku": "TL-HAM-002",
+  "name": "Should be rejected",
+  "categoryId": 1
+}
+
+### Categories
+GET {{host}}/api/categories
+Accept: application/json
+
+### Stock on hand for a product
+GET {{host}}/api/products/1/stock
+Accept: application/json
+
+### Its movement history
+GET {{host}}/api/products/1/movements
+Accept: application/json
+
+### Receive stock
+POST {{host}}/api/products/1/movements
+Content-Type: application/json
+X-Api-Key: {{apiKey}}
+
+{
+  "type": "In",
+  "quantity": 25,
+  "reason": "Delivery 4471"
+}
+
+### Issue stock
+POST {{host}}/api/products/1/movements
+Content-Type: application/json
+X-Api-Key: {{apiKey}}
+
+{
+  "type": "Out",
+  "quantity": 4,
+  "reason": "Sales order 1041"
+}
+
+### Issue more than exists - expect 400, never a negative balance
+POST {{host}}/api/products/1/movements
+Content-Type: application/json
+X-Api-Key: {{apiKey}}
+
+{
+  "type": "Out",
+  "quantity": 999999,
+  "reason": "Should be refused"
+}
+
+### Bulk import from CSV
+POST {{host}}/api/products/import
+X-Api-Key: {{apiKey}}
+Content-Type: multipart/form-data; boundary=----boundary
+
+------boundary
+Content-Disposition: form-data; name="file"; filename="products.csv"
+Content-Type: text/csv
+
+sku,name,description,category,quantity
+IM-001,Imported hammer,"Heavy, steel",Tools,12
+IM-002,Imported goggles,,Safety,3
+------boundary--

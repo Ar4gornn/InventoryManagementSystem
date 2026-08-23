@@ -43,7 +43,7 @@ public class ProductsController : ControllerBase
     {
         if (file is null || file.Length == 0)
         {
-            return Problem("Upload a CSV file in a form field named 'file'.", statusCode: 400);
+            throw new DomainException("Upload a CSV file in a form field named 'file'.");
         }
 
         await using var stream = file.OpenReadStream();
@@ -56,8 +56,14 @@ public class ProductsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ProductDto>> GetById(int id, CancellationToken ct)
     {
-        var product = await _products.GetByIdAsync(id, ct);
-        return product is null ? Problem($"Product {id} does not exist.", statusCode: 404) : Ok(product);
+        // Thrown rather than returned so every error in this API leaves through
+        // the same middleware, with one shape and one content type. Returning
+        // Problem() here produced application/json, because [Produces] overrides
+        // it, while the middleware produced application/problem+json.
+        var product = await _products.GetByIdAsync(id, ct)
+                      ?? throw DomainException.NotFound($"Product {id} does not exist.");
+
+        return Ok(product);
     }
 
     /// <summary>Creates a product. The SKU must not already be in use.</summary>

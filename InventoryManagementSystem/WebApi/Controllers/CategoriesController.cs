@@ -35,8 +35,12 @@ public class CategoriesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<CategoryDto>> GetById(int id, CancellationToken ct)
     {
-        var category = await _categories.GetByIdAsync(id, ct);
-        return category is null ? Problem($"Category {id} does not exist.", statusCode: 404) : Ok(category);
+        // Thrown, not returned, so all errors share the middleware's shape and
+        // content type. See the note in ProductsController.GetById.
+        var category = await _categories.GetByIdAsync(id, ct)
+                       ?? throw DomainException.NotFound($"Category {id} does not exist.");
+
+        return Ok(category);
     }
 
     /// <summary>Creates a category. Names are unique.</summary>

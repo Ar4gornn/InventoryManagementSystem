@@ -1,0 +1,87 @@
+name: Bug report
+description: Something behaves differently from what the README or the tests say it should.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not report a security vulnerability here — see
+        [SECURITY.md](https://github.com/Ar4gornn/InventoryManagementSystem/blob/main/SECURITY.md)
+        for the private route.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you observed, and what you expected instead.
+      placeholder: |
+        Recording an Out movement for exactly the quantity on hand returns 400,
+        but zero stock should be allowed — only negative stock is rejected.
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: >
+        The smallest sequence that shows it. A `curl` line or a failing test is worth more than a
+        description — include the request body and the response, not a summary of them.
+      render: shell
+      placeholder: |
+        curl -X POST http://localhost:5180/api/products/1/movements \
+          -H "X-Api-Key: $KEY" -H "Content-Type: application/json" \
+          -d '{"type":"Out","quantity":21}'
+
+        → 400 {"detail":"Stock cannot go negative..."}
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which part
+      options:
+        - API — products or categories
+        - API — stock movements
+        - API — CSV import
+        - API key, CORS, or startup configuration
+        - Web UI
+        - Docker / compose
+        - Build, tests, or CI
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: >
+        Commit or version, OS, and `dotnet --version`. If it is the UI, the browser. If it is
+        compose, say so and give `docker --version`.
+      placeholder: |
+        commit 8c3f897, Windows 11, dotnet 8.0.406, Chrome 140
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Output
+      description: >
+        The real error, pasted verbatim — response body, stack trace, or console output. Redact the
+        API key and anything else secret.
+      render: shell
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I checked this is not one of the known limits listed in SECURITY.md.
+          required: true
+        - label: This is not a security vulnerability.
+          required: true

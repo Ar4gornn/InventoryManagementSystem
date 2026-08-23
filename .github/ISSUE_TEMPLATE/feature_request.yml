@@ -1,0 +1,52 @@
+name: Feature request
+description: Propose something the project does not do yet.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This is a personal project with one maintainer, so a proposal may be declined for scope
+        rather than merit. Opening this before writing code is the point — it saves you a pull
+        request I cannot merge.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: >
+        What you were trying to do and where the project stopped you. Describe the situation, not
+        the solution — the fix is often not the one you first reach for.
+      placeholder: |
+        I need to reconcile a physical stock count against the log, and there is no way to record
+        "the shelf says 18, the log says 21" without inventing a fake movement.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you propose
+      description: How it would work, and what the API or UI would look like.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you tried or considered instead
+      description: >
+        Including "nothing existing comes close" — that is a real answer. If an existing endpoint
+        almost does it, say which and what is missing.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: invariant
+    attributes:
+      label: The derived-stock rule
+      description: >
+        Stock on hand is the sum of the movement log and is never stored. A proposal that caches or
+        writes a quantity directly will be declined — see CONTRIBUTING.md.
+      options:
+        - label: This proposal does not store stock as a column or write it directly.
+          required: true

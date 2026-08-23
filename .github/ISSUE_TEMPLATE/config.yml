@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/Ar4gornn/InventoryManagementSystem/security/advisories/new
+    about: Report privately, never in a public issue. See SECURITY.md.
+  - name: Question about how something works
+    url: https://github.com/Ar4gornn/InventoryManagementSystem/blob/main/README.md
+    about: The README covers the API surface, the derived-stock design, and running it in Docker.

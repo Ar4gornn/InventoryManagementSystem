@@ -225,6 +225,16 @@ transaction is there for a provider with row-level MVCC, and that test would not
 - [ ] Low-stock alerts driven by a reorder level per product
 - [ ] PostgreSQL support and a compose profile for it
 
+## Contributing
+
+[CONTRIBUTING.md](CONTRIBUTING.md) covers the local setup, what has to pass before a pull request,
+and the one design rule that is not up for negotiation — stock is derived from the movement log and
+is never stored.
+
+Security reports go through the private route in [SECURITY.md](SECURITY.md), never a public issue.
+That file also lists the limits this project already knows it has, which is worth reading before
+reporting one of them.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
